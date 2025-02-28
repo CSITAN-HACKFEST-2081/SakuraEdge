@@ -1,5 +1,4 @@
 // This is your Prisma schema file
-// Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -12,70 +11,104 @@ datasource db {
 
 // Model for Doctors
 model Doctor {
-  name             String   @id
-  email            String   @unique
-  password         String
-  licenseNo        String
-  specialization   String
-  location         String?
-  contactNo        String?
-  createdAt        DateTime @default(now())
-  otpCode          String?
-  otpVerified      Boolean  @default(false)
+  id              Int      @id @default(autoincrement())
+  name            String   
+  email           String   @unique
+  password        String
+  licenseNo       String
+  specialization  String
+  location        String?
+  contactNo       String?
+  createdAt       DateTime @default(now())
+  otpCode         String?
+  otpVerified     Boolean  @default(false)
 
   // Relationships
-  chats            Chat[]   // Chats with patients
-  meetings         Meeting[] // Meetings with patients
-  availabilities    Availability[] // Doctor's availability slots
+  sentChats       Chat[]   @relation("DoctorChatsSender")
+  receivedChats   Chat[]   @relation("DoctorChatsReceiver")
+  meetings        Meeting[] 
+  availabilities  Availability[]
+  payments        Payment[] // Payments associated with a doctor
 }
 
 // Model for Patients
 model Patient {
-  name             String   @id
-  email            String   @unique
-  password         String
-  bloodType        String   // Crucial field
-  location         String?
-  contactNo        String?
-  createdAt        DateTime @default(now())
-  otpCode          String?
-  otpVerified      Boolean  @default(false)
+  id              Int      @id @default(autoincrement())
+  name            String   
+  email           String   @unique
+  password        String
+  bloodType       String  
+  location        String?
+  contactNo       String?
+  createdAt       DateTime @default(now())
+  otpCode         String?
+  otpVerified     Boolean  @default(false)
 
   // Relationships
-  chats            Chat[]   // Chats with doctors
-  meetings         Meeting[] // Meetings with doctors
+  sentChats       Chat[]   @relation("PatientChatsSender")
+  receivedChats   Chat[]   @relation("PatientChatsReceiver")
+  meetings        Meeting[]
+  payments        Payment[] // Payments associated with a patient
 }
 
 // Model for Chat
 model Chat {
-  id        Int      @id @default(autoincrement())
-  doctorId  String
-  patientId String
-  message   String
-  createdAt DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  doctorSenderId   Int?
+  patientSenderId  Int?
+  doctorReceiverId Int?
+  patientReceiverId Int?
+  message          String
+  createdAt        DateTime @default(now())
 
-  doctor    Doctor   @relation(fields: [doctorId], references: [name], onDelete: Cascade)
-  patient   Patient  @relation(fields: [patientId], references: [name], onDelete: Cascade)
+  // Relations
+  doctorSender    Doctor?  @relation("DoctorChatsSender", fields: [doctorSenderId], references: [id], onDelete: Cascade)
+  patientSender   Patient? @relation("PatientChatsSender", fields: [patientSenderId], references: [id], onDelete: Cascade)
+  doctorReceiver  Doctor?  @relation("DoctorChatsReceiver", fields: [doctorReceiverId], references: [id], onDelete: Cascade)
+  patientReceiver Patient? @relation("PatientChatsReceiver", fields: [patientReceiverId], references: [id], onDelete: Cascade)
 }
 
-// Model for Meeting
+// Model for Meeting (Appointment)
 model Meeting {
-  id          Int      @id @default(autoincrement())
-  doctorId    String
-  patientId   String
-  scheduledAt DateTime
-  createdAt   DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  doctorId       Int
+  patientId      Int
+  availabilityId Int   // Ensures scheduling within available time
+  scheduledAt    DateTime
+  createdAt      DateTime @default(now())
 
-  doctor      Doctor   @relation(fields: [doctorId], references: [name], onDelete: Cascade)
-  patient     Patient  @relation(fields: [patientId], references: [name], onDelete: Cascade)
+  doctor         Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  availability   Availability  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+
+  @@unique([availabilityId]) // Ensures only one meeting per availability slot
 }
 
 // Model for Doctor's Availability
 model Availability {
   id          Int      @id @default(autoincrement())
-  doctorId    String
+  doctorId    Int
   startTime   DateTime
   endTime     DateTime
 
-  doctor      Doctor   @relation(fields: [doctorId], references: [name], onDelete: Cascade)
+  doctor      Doctor     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  meetings    Meeting[]  // Added back-relation to Meeting
+
+  @@unique([doctorId, startTime, endTime]) // Prevents duplicate time slots
+}
+
+// Model for Payments
+model Payment {
+  id               Int      @id @default(autoincrement())
+  patientId        Int
+  doctorId         Int
+  transactionUuid  String   @unique
+  transactionCode  String?
+  amount           Float
+  status           String   // "PENDING", "COMPLETE", "FAILED"
+  createdAt        DateTime @default(now())
+
+  // Relations
+  patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor           Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 }

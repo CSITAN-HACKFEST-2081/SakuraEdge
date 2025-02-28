@@ -83,11 +83,11 @@ export const registerDoctor = async (req: Request, res: Response) => {
       await Promise.all(availability.map(async (slot: { startTime: string, endTime: string }) => {
         await prisma.availability.create({
           data: {
-            doctorId: user.name,
+            doctorId: user.id, 
             startTime: new Date(slot.startTime),
             endTime: new Date(slot.endTime),
           },
-        });
+        });        
       }));
     }
 
