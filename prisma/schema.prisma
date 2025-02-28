@@ -1,0 +1,81 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Model for Doctors
+model Doctor {
+  name             String   @id
+  email            String   @unique
+  password         String
+  licenseNo        String
+  specialization   String
+  location         String?
+  contactNo        String?
+  createdAt        DateTime @default(now())
+  otpCode          String?
+  otpVerified      Boolean  @default(false)
+
+  // Relationships
+  chats            Chat[]   // Chats with patients
+  meetings         Meeting[] // Meetings with patients
+  availabilities    Availability[] // Doctor's availability slots
+}
+
+// Model for Patients
+model Patient {
+  name             String   @id
+  email            String   @unique
+  password         String
+  bloodType        String   // Crucial field
+  location         String?
+  contactNo        String?
+  createdAt        DateTime @default(now())
+  otpCode          String?
+  otpVerified      Boolean  @default(false)
+
+  // Relationships
+  chats            Chat[]   // Chats with doctors
+  meetings         Meeting[] // Meetings with doctors
+}
+
+// Model for Chat
+model Chat {
+  id        Int      @id @default(autoincrement())
+  doctorId  String
+  patientId String
+  message   String
+  createdAt DateTime @default(now())
+
+  doctor    Doctor   @relation(fields: [doctorId], references: [name], onDelete: Cascade)
+  patient   Patient  @relation(fields: [patientId], references: [name], onDelete: Cascade)
+}
+
+// Model for Meeting
+model Meeting {
+  id          Int      @id @default(autoincrement())
+  doctorId    String
+  patientId   String
+  scheduledAt DateTime
+  createdAt   DateTime @default(now())
+
+  doctor      Doctor   @relation(fields: [doctorId], references: [name], onDelete: Cascade)
+  patient     Patient  @relation(fields: [patientId], references: [name], onDelete: Cascade)
+}
+
+// Model for Doctor's Availability
+model Availability {
+  id          Int      @id @default(autoincrement())
+  doctorId    String
+  startTime   DateTime
+  endTime     DateTime
+
+  doctor      Doctor   @relation(fields: [doctorId], references: [name], onDelete: Cascade)
+}
