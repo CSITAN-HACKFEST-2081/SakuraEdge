@@ -80,12 +80,13 @@ export const registerDoctor = async (req: Request, res: Response) => {
 
     // Create availability entries
     if (availability && Array.isArray(availability)) {
-      await Promise.all(availability.map(async (slot: { startTime: string, endTime: string }) => {
+      await Promise.all(availability.map(async (slot: { startTime: string, endTime: string, availableDays: string }) => {
         await prisma.availability.create({
           data: {
-            doctorId: user.id, 
+            doctorId: user.id,
             startTime: new Date(slot.startTime),
             endTime: new Date(slot.endTime),
+            availableDays: slot.availableDays, // Add this line
           },
         });        
       }));
@@ -106,7 +107,6 @@ export const registerDoctor = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getAllDoctors = async (_req: Request, res: Response) => {
   try {
     const doctors = await prisma.doctor.findMany({

@@ -90,6 +90,7 @@ model Availability {
   doctorId    Int
   startTime   DateTime
   endTime     DateTime
+  availableDays String  
 
   doctor      Doctor     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   meetings    Meeting[]  // Added back-relation to Meeting
@@ -106,7 +107,7 @@ model Payment {
   transactionCode  String?
   amount           Float
   status           String   // "PENDING", "COMPLETE", "FAILED"
-  createdAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   // Relations
   patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
